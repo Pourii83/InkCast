@@ -1,4 +1,4 @@
--- Player cast bar with latency, pushback and channel support
+-- Player cast bar with latency, pushback, channel and multi-item crafting support
 
 local OC = InkCast
 local mod = OC:NewModule("player", "Player")
@@ -35,6 +35,22 @@ local origUseAction = UseAction
 function UseAction(slot, checkCursor, onSelf)
   MarkSent(GetActionTexture(slot))
   return origUseAction(slot, checkCursor, onSelf)
+end
+
+-- Crafting several items is one "job": the bar fills against the whole job
+-- and a halo sweeps across it once per item.
+local JOB_START_WINDOW = 2   -- seconds from DoTradeSkill to the first cast
+local JOB_GAP = 2            -- seconds allowed between one item and the next
+
+local origDoTradeSkill = DoTradeSkill
+function DoTradeSkill(index, count)
+  count = tonumber(count) or 1
+  if count > 1 then
+    mod.job = { total = count, done = 0, requested = GetTime(), icon = GetTradeSkillIcon(index) }
+  else
+    mod.job = nil
+  end
+  return origDoTradeSkill(index, count)
 end
 
 local function TakeLatency()
@@ -79,7 +95,7 @@ function mod:OnEnable()
 end
 
 function mod:OnDisable()
-  self.casting, self.channeling, self.testing = nil, nil, nil
+  self.casting, self.channeling, self.testing, self.job = nil, nil, nil, nil
   if self.db.hideBlizzard then
     for _, e in ipairs(BLIZZARD_EVENTS) do CastingBarFrame:RegisterEvent(e) end
   end
@@ -124,7 +140,7 @@ end
 
 function mod:Succeed()
   local bar = self.bar
-  self.casting, self.testing = nil, nil
+  self.casting, self.testing, self.job = nil, nil, nil
   bar:SetProgress(1)
   bar:SetColor(OC.db.colors.success)
   bar:ClearTime()
@@ -134,7 +150,7 @@ end
 function mod:Fail(text)
   local bar = self.bar
   if bar.unlocked or self.channeling or not bar:IsShown() then return end
-  self.casting, self.testing = nil, nil
+  self.casting, self.testing, self.job = nil, nil, nil
   bar:SetProgress(1)
   bar:SetColor(OC.db.colors.failed)
   bar:SetLatency(nil)
@@ -153,8 +169,64 @@ function mod:Test()
   self.testing = true
 end
 
+function mod:StartJobItem(name, duration)
+  local bar, job = self.bar, self.job
+  if bar.unlocked then return end
+  TakeLatency()
+  local now = GetTime()
+  job.start = job.start or now
+  job.itemDuration = duration
+  job.waitUntil = nil
+
+  self.startTime = now
+  self.endTime = now + duration
+  self.duration = duration
+  self.delay = 0
+  self.casting, self.channeling = true, nil
+  self.fromCastEvent, self.testing = nil, nil
+
+  bar:SetColor(OC.db.colors.cast)
+  bar.text:SetText(string.format("%s (%d/%d)", name, job.done + 1, job.total))
+  bar:SetIcon(SpellIcon(name) or job.icon)
+  bar:SetLatency(nil)
+  bar:Begin()
+  self:UpdateJob(now)
+end
+
+-- remaining items are estimated at the current item's cast time
+function mod:UpdateJob(now)
+  local job, bar = self.job, self.bar
+  local left = job.total - job.done
+  local itemFrac, estimate = 0, now - job.start + job.itemDuration * left
+  if self.casting then
+    itemFrac = (now - self.startTime) / (self.endTime - self.startTime)
+    if itemFrac > 1 then itemFrac = 1 end
+    estimate = self.endTime - job.start + job.itemDuration * (left - 1)
+  end
+  bar:SetProgress((job.done + itemFrac) / job.total)
+  bar:SetHalo(self.casting and itemFrac or nil)
+  if self.db.showTimer then
+    bar:SetTime(now - job.start, estimate)
+  else
+    bar:ClearTime()
+  end
+end
+
 function mod:OnUpdate()
   local now = GetTime()
+  local job = self.job
+  if job and job.start then
+    if job.waitUntil and now > job.waitUntil then
+      -- the next item never started (out of reagents, cancelled)
+      self.job = nil
+      self.bar:Finish(true)
+    elseif self.casting and now >= self.endTime + 0.5 then
+      self:SPELLCAST_STOP()
+    else
+      self:UpdateJob(now)
+    end
+    return
+  end
   if self.casting then
     -- SPELLCAST_STOP normally ends the cast; the timeout guards against a missed event
     if now >= self.endTime and (self.testing or now >= self.endTime + 0.5) then
@@ -176,6 +248,18 @@ function mod:OnUpdate()
 end
 
 function mod:SPELLCAST_START()
+  local job = self.job
+  if job then
+    local now = GetTime()
+    if job.start and job.waitUntil then
+      self:StartJobItem(arg1, arg2 / 1000)
+      return
+    elseif not job.start and now - job.requested <= JOB_START_WINDOW then
+      self:StartJobItem(arg1, arg2 / 1000)
+      return
+    end
+    self.job = nil
+  end
   -- already started from SuperWoW's event for this same cast
   if self.casting and self.fromCastEvent and GetTime() - self.startTime < 0.5 then
     self.fromCastEvent = nil
@@ -186,6 +270,19 @@ function mod:SPELLCAST_START()
 end
 
 function mod:SPELLCAST_STOP()
+  local job = self.job
+  if job and job.start then
+    if not self.casting then return end
+    self.casting = nil
+    job.done = job.done + 1
+    if job.done >= job.total then
+      self:Succeed()
+    else
+      job.waitUntil = GetTime() + JOB_GAP
+      self:UpdateJob(GetTime())
+    end
+    return
+  end
   if self.casting and not self.testing then self:Succeed() end
 end
 
@@ -236,7 +333,7 @@ function mod:UNIT_CASTEVENT()
   local _, guid = UnitExists("player")
   if arg1 ~= guid then return end
   if arg3 == "START" then
-    if not arg5 or arg5 <= 0 then return end
+    if not arg5 or arg5 <= 0 or self.job then return end
     if self.casting and not self.testing and GetTime() - self.startTime < 0.5 then return end
     local name, _, icon = SpellInfo(arg4)
     if not name then return end

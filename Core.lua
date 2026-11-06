@@ -3,7 +3,7 @@
 InkCast = {}
 local OC = InkCast
 
-OC.version = "0.1.0"
+OC.version = "0.2.0"
 OC.modules = {}
 OC.moduleOrder = {}
 
@@ -104,6 +104,8 @@ function Bar:ApplySettings()
   if not cfg.showIcon then self.icon:Hide() end
 
   self.spark:SetHeight(cfg.height * 2)
+  self.halo:SetWidth(cfg.height * 3)
+  self.halo:SetHeight(cfg.height - 2)
 end
 
 function Bar:SetColor(c)
@@ -131,6 +133,17 @@ function Bar:SetProgress(v)
   else
     self.spark:Hide()
   end
+end
+
+-- a glow that sweeps across the whole bar, e.g. once per crafted item
+function Bar:SetHalo(frac)
+  if not frac or frac <= 0 or frac >= 1 then
+    self.halo:Hide()
+    return
+  end
+  self.halo:ClearAllPoints()
+  self.halo:SetPoint("CENTER", self.status, "LEFT", frac * (self.cfg.width - 2), 0)
+  self.halo:Show()
 end
 
 -- frac: latency as a fraction of the bar; side: "RIGHT" for casts, "LEFT" for channels
@@ -181,6 +194,7 @@ function Bar:Finish(fade)
   if self.unlocked then return end
   self.active = nil
   self.spark:Hide()
+  self.halo:Hide()
   if fade and self:IsShown() then
     self.fadeLeft = FADE_TIME
   else
@@ -198,6 +212,7 @@ function Bar:SetUnlocked(flag)
     self:SetAlpha(1)
     self:SetColor(OC.db.colors.unlocked)
     self:SetProgress(1)
+    self:SetHalo(nil)
     self:SetLatency(nil)
     self.icon:Hide()
     self.text:SetText("InkCast: " .. self.label)
@@ -266,6 +281,13 @@ function OC:CreateBar(key, label, mod)
   spark:SetAlpha(0.8)
   spark:Hide()
   f.spark = spark
+
+  local halo = status:CreateTexture(nil, "OVERLAY")
+  halo:SetTexture("Interface\\AddOns\\InkCast\\Textures\\Halo")
+  halo:SetBlendMode("ADD")
+  halo:SetAlpha(0.7)
+  halo:Hide()
+  f.halo = halo
 
   local textFrame = CreateFrame("Frame", nil, status)
   textFrame:SetAllPoints(status)
