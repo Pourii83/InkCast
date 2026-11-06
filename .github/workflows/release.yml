@@ -1,0 +1,28 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Zip with an InkCast/ folder inside, so it extracts straight into Interface\AddOns
+      - name: Build addon zip
+        run: git archive --format=zip --prefix=InkCast/ -o "InkCast-${GITHUB_REF_NAME}.zip" HEAD InkCast.toc Core.lua Modules Textures README.md
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git fetch --force origin "refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}"
+          gh release create "$GITHUB_REF_NAME" "InkCast-${GITHUB_REF_NAME}.zip" \
+            --title "InkCast ${GITHUB_REF_NAME}" --notes-from-tag
