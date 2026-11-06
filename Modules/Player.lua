@@ -71,6 +71,7 @@ end
 function mod:OnEnable()
   for _, e in ipairs(BLIZZARD_EVENTS) do self.bar:RegisterEvent(e) end
   self.bar:RegisterEvent("SPELLS_CHANGED")
+  if SUPERWOW_VERSION then self.bar:RegisterEvent("UNIT_CASTEVENT") end
   if self.db.hideBlizzard then
     CastingBarFrame:UnregisterAllEvents()
     CastingBarFrame:Hide()
@@ -97,6 +98,7 @@ function mod:StartBar(name, duration, channel)
   self.delay = 0
   self.casting = not channel
   self.channeling = channel
+  self.fromCastEvent = nil
 
   bar:SetColor(channel and colors.channel or colors.cast)
   bar.text:SetText(name)
@@ -174,6 +176,11 @@ function mod:OnUpdate()
 end
 
 function mod:SPELLCAST_START()
+  -- already started from SuperWoW's event for this same cast
+  if self.casting and self.fromCastEvent and GetTime() - self.startTime < 0.5 then
+    self.fromCastEvent = nil
+    return
+  end
   self.testing = nil
   self:StartBar(arg1, arg2 / 1000, false)
 end
@@ -221,4 +228,27 @@ end
 
 function mod:SPELLS_CHANGED()
   iconCache = {}
+end
+
+-- Some casts (e.g. Aimed Shot) don't fire SPELLCAST_START on the 1.12 client;
+-- SuperWoW's UNIT_CASTEVENT still reports them, so use it as a fallback.
+function mod:UNIT_CASTEVENT()
+  local _, guid = UnitExists("player")
+  if arg1 ~= guid then return end
+  if arg3 == "START" then
+    if not arg5 or arg5 <= 0 then return end
+    if self.casting and not self.testing and GetTime() - self.startTime < 0.5 then return end
+    local name, _, icon = SpellInfo(arg4)
+    if not name then return end
+    self.testing = nil
+    if icon then sendTexture = sendTexture or icon end
+    self:StartBar(name, arg5 / 1000, false)
+    self.fromCastEvent = true
+  elseif self.casting and self.fromCastEvent then
+    if arg3 == "CAST" then
+      self:Succeed()
+    elseif arg3 == "FAIL" then
+      self:Fail(INTERRUPTED or "Interrupted")
+    end
+  end
 end

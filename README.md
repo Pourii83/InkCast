@@ -8,7 +8,7 @@ Quartz-style cast bars for **OctoWoW** (1.12.1 client, Interface 11200).
 - **Latency**: a red area at the end of the bar shows your real lag. It is measured from the key press to the server's cast start, and falls back to `GetNetStats` when that isn't available.
 - **Pushback**: shows the delay added by damage taken (`+0.5`) on casts and channels.
 - **GCD bar**: a thin bar with a spark under the cast bar.
-- **Swing timer**: a main-hand melee timer that adjusts when haste changes.
+- **Swing timer**: main-hand melee plus ranged Auto Shot / wand Shoot (in a different color), adjusting when haste changes.
 - **Target cast bar**: needs [SuperWoW](https://github.com/balakethelock/SuperWoW) (`UNIT_CASTEVENT`). Without it, this bar stays inactive.
 
 ## Install
@@ -32,5 +32,6 @@ Clone or extract this repository into `Interface\AddOns\OctoCast`, so that `Octo
 
 ## Limitations
 
-- Without SuperWoW, the swing timer reads the combat log, so off-hand hits also reset it. "On next swing" abilities such as Heroic Strike don't reset it.
+- Without SuperWoW, the swing timer reads the combat log, so off-hand hits also reset it. "On next swing" abilities such as Heroic Strike don't reset it, and Auto Shot is only seen when the arrow lands, so the ranged timer starts slightly late.
+- Casts that don't fire the normal cast event on the 1.12 client (such as Aimed Shot) only show with SuperWoW.
 - The 1.12 client has no API for other units' casts, so the target bar only works with SuperWoW.
