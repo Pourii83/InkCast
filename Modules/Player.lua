@@ -1,6 +1,6 @@
 -- Player cast bar with latency, pushback and channel support
 
-local OC = OctoCast
+local OC = InkCast
 local mod = OC:NewModule("player", "Player")
 
 local BLIZZARD_EVENTS = {
@@ -145,11 +145,11 @@ end
 
 function mod:Test()
   if not self.enabled then
-    OC:Print("Player bar is disabled (/ocast player on).")
+    OC:Print("Player bar is disabled (/ink player on).")
     return
   end
   sendTime, sendTexture = GetTime() - 0.15, "Interface\\Icons\\Spell_Nature_Lightning"
-  self:StartBar("OctoCast Test", 2.5, false)
+  self:StartBar("InkCast Test", 2.5, false)
   self.testing = true
 end
 

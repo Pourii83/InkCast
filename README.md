@@ -1,4 +1,4 @@
-# OctoCast
+# InkCast
 
 Quartz-style cast bars for **OctoWoW** (1.12.1 client, Interface 11200).
 
@@ -13,11 +13,11 @@ Quartz-style cast bars for **OctoWoW** (1.12.1 client, Interface 11200).
 
 ## Install
 
-Clone or extract this repository into `Interface\AddOns\OctoCast`, so that `OctoCast.toc` sits directly in that folder.
+Clone or extract this repository into `Interface\AddOns\InkCast`, so that `InkCast.toc` sits directly in that folder.
 
 ## Commands
 
-`/octocast` or `/ocast`
+`/inkcast` or `/ink`
 
 | Command | Effect |
 |---|---|

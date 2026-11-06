@@ -1,7 +1,7 @@
 -- Swing timer: main-hand melee plus ranged Auto Shot / wand Shoot
 -- Uses SuperWoW's UNIT_CASTEVENT when available, otherwise the combat log.
 
-local OC = OctoCast
+local OC = InkCast
 local mod = OC:NewModule("swing", "Swing")
 
 local AUTO_SHOT_ID, SHOOT_ID = 75, 5019

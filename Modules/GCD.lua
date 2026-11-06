@@ -1,6 +1,6 @@
 -- Global cooldown bar
 
-local OC = OctoCast
+local OC = InkCast
 local mod = OC:NewModule("gcd", "GCD")
 
 -- index of a spellbook spell known to show the GCD, so we rarely rescan

@@ -1,7 +1,7 @@
--- OctoCast: Quartz-style cast bars for OctoWoW (1.12 client, Lua 5.0)
+-- InkCast: Quartz-style cast bars for OctoWoW (1.12 client, Lua 5.0)
 
-OctoCast = {}
-local OC = OctoCast
+InkCast = {}
+local OC = InkCast
 
 OC.version = "0.1.0"
 OC.modules = {}
@@ -12,10 +12,10 @@ local FONT = "Fonts\\FRIZQT__.TTF"
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 
 OC.textures = {
-  smooth = "Interface\\AddOns\\OctoCast\\Textures\\Smooth",
-  gloss = "Interface\\AddOns\\OctoCast\\Textures\\Gloss",
-  minimal = "Interface\\AddOns\\OctoCast\\Textures\\Minimal",
-  banto = "Interface\\AddOns\\OctoCast\\Textures\\Banto",
+  smooth = "Interface\\AddOns\\InkCast\\Textures\\Smooth",
+  gloss = "Interface\\AddOns\\InkCast\\Textures\\Gloss",
+  minimal = "Interface\\AddOns\\InkCast\\Textures\\Minimal",
+  banto = "Interface\\AddOns\\InkCast\\Textures\\Banto",
   blizzard = "Interface\\TargetingFrame\\UI-StatusBar",
   flat = WHITE,
 }
@@ -69,7 +69,7 @@ local function CopyDefaults(src, dst)
 end
 
 function OC:Print(msg)
-  DEFAULT_CHAT_FRAME:AddMessage("|cff33ff99OctoCast|r: " .. msg)
+  DEFAULT_CHAT_FRAME:AddMessage("|cff33ff99InkCast|r: " .. msg)
 end
 
 ----------------------------------------------------------------------
@@ -200,7 +200,7 @@ function Bar:SetUnlocked(flag)
     self:SetProgress(1)
     self:SetLatency(nil)
     self.icon:Hide()
-    self.text:SetText("OctoCast: " .. self.label)
+    self.text:SetText("InkCast: " .. self.label)
     self:ClearTime()
     self:Show()
   else
@@ -212,7 +212,7 @@ end
 
 function OC:CreateBar(key, label, mod)
   local cfg = self.db[key]
-  local f = CreateFrame("Frame", "OctoCastBar_" .. key, UIParent)
+  local f = CreateFrame("Frame", "InkCastBar_" .. key, UIParent)
   for k, v in pairs(Bar) do f[k] = v end
   f.cfg = cfg
   f.label = label
@@ -384,8 +384,8 @@ function OC:SetLocked(locked)
 end
 
 function OC:Initialize()
-  OctoCastDB = CopyDefaults(self.defaults, OctoCastDB)
-  self.db = OctoCastDB
+  InkCastDB = CopyDefaults(self.defaults, InkCastDB)
+  self.db = InkCastDB
   if not self.textures[self.db.texture] then self.db.texture = "smooth" end
   for _, key in ipairs(self.moduleOrder) do
     local mod = self.modules[key]
@@ -401,7 +401,7 @@ end
 ----------------------------------------------------------------------
 
 local function Help()
-  OC:Print("v" .. OC.version .. " commands (/octocast or /ocast):")
+  OC:Print("v" .. OC.version .. " commands (/inkcast or /ink):")
   OC:Print("  unlock | lock  - move the bars")
   OC:Print("  test  - show a test cast on the player bar")
   OC:Print("  latency  - toggle latency display")
@@ -423,7 +423,7 @@ function OC:SlashCommand(msg)
     Help()
   elseif cmd == "unlock" or cmd == "move" then
     self:SetLocked(false)
-    self:Print("Bars unlocked. Drag them, then type /ocast lock.")
+    self:Print("Bars unlocked. Drag them, then type /ink lock.")
   elseif cmd == "lock" then
     self:SetLocked(true)
     self:Print("Bars locked.")
@@ -442,7 +442,7 @@ function OC:SlashCommand(msg)
       self:Print("Textures: smooth, gloss, minimal, banto, blizzard, flat (now " .. self.db.texture .. ").")
     end
   elseif cmd == "reset" then
-    OctoCastDB = nil
+    InkCastDB = nil
     ReloadUI()
   elseif self.modules[cmd] then
     local mod = self.modules[cmd]
@@ -470,14 +470,14 @@ function OC:SlashCommand(msg)
   end
 end
 
-SLASH_OCTOCAST1 = "/octocast"
-SLASH_OCTOCAST2 = "/ocast"
-SlashCmdList["OCTOCAST"] = function(msg) OC:SlashCommand(msg) end
+SLASH_INKCAST1 = "/inkcast"
+SLASH_INKCAST2 = "/ink"
+SlashCmdList["INKCAST"] = function(msg) OC:SlashCommand(msg) end
 
 local loader = CreateFrame("Frame")
 loader:RegisterEvent("ADDON_LOADED")
 loader:SetScript("OnEvent", function()
-  if arg1 ~= "OctoCast" then return end
+  if arg1 ~= "InkCast" then return end
   this:UnregisterEvent("ADDON_LOADED")
   OC:Initialize()
 end)

@@ -1,7 +1,7 @@
 -- Target cast bar
 -- The 1.12 client exposes no other unit's casts; this needs SuperWoW's UNIT_CASTEVENT.
 
-local OC = OctoCast
+local OC = InkCast
 local mod = OC:NewModule("target", "Target")
 
 local casts = {}
